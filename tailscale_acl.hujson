@@ -1,0 +1,56 @@
+// Tailscale Access Control List
+{
+	// Declare static groups of users.
+	// Use autogroups for all users or users with a specific role.
+	"groups": {
+		"group:admins": [
+			"name@example.com", // <----- REPLACE WITH TAILSCALE ADMIN
+		],
+	},
+
+	// Define the tags which can be applied to devices and by which users.
+	"tagOwners": {
+		"tag:foundry-vtt-client": ["group:admins"],
+		"tag:foundry-vtt-server": ["group:admins"],
+	},
+
+	// Define access control lists for users, groups, autogroups, tags,
+	// Tailscale IP addresses, and subnet ranges.
+	"acls": [
+		// Allow Tailscale connections only from user devices to
+		// home servers, specific subnets, and exit nodes.
+		{
+			"action": "accept",
+			"src":    ["tag:foundry-vtt-client"],
+			"dst": [
+				"tag:foundry-vtt-server:30000", // Allow connections from clients to Foundry VTT server's default port of 30000
+			],
+		},
+	],
+
+	// Test access rules every time they're saved.
+	"tests": [
+		// User devices should be able to access the Foundry VTT server
+		{
+			"src": "tag:foundry-vtt-client",
+			"accept": [
+				"tag:foundry-vtt-server:30000", // Allow server port 30000
+			],
+			"deny": [
+                "tag:foundry-vtt-client:22", // Deny client device port 22
+                "tag:foundry-vtt-client:30000" // Deny client device port 30000
+            ],
+		},
+		// Servers should not be able
+		// to initiate communication with any other device
+		{
+			"src": "tag:foundry-vtt-server",
+			"deny": [
+                "tag:foundry-vtt-client:22", // Deny client device port 22
+				"tag:foundry-vtt-client:30000", // Any client device port 30000
+				"tag:foundry-vtt-server:22", // Deny server port 22
+				"tag:foundry-vtt-server:30000", // Any server port 30000
+			],
+		},
+	],
+}
